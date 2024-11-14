@@ -1,0 +1,67 @@
+#! /bin/bash
+# This app runs on 6525-1 and maps a flask experimenter request to start flow
+# form entry data from CreateFlowForm into a requested flow initiation
+#
+# Usage: create-flow-app-flask source_command
+#                              nat_address
+#                              nat_port
+#                              source_flow (hides source_address, source intfc, flow_id, port_type)
+#                              destination_address
+#                              destination_port
+# e.g.,
+# create-flow-app-flask /usr/bin/nc 10.43.200.10 16010 172.17.0.45 ens3f1 tcp 34.121.32.104 15080
+#                                   
+# Here are the commands that the create-flow-app-flask will run (under the hood)
+#    /home/jtb/Desktop/nat/golden/add-prerouting-dnat-rule 16010 34.121.32.104 15080
+#    /home/jtb/Desktop/nat/golden/add-host-route-remote 172.17.0.45 10.43.200.10 ens3f1 34.121.32.104
+#    ssh jtb@jtb-dell-6515-1 /usr/bin/nc 34.121.32.104 16010 < /var/log/syslog
+#
+# Some of the parameters are obtained by import from the selected offered flow, others are
+# experimenter provided
+#
+# Usage: create-flow-app-flask /usr/bin/nc             source_command
+#                              10.43.200.10            nat_address
+#                              16010                   nat_port (inbound)
+#                              172.17.0.45             source_address
+#                              ens3f1                  source intfc
+#                              tcp                     port_type
+#                              34.121.32.104           #destination_address
+#                              15080                   #destination_port
+SOURCE_COMMAND=$1
+NAT_ADDRESS=$2
+NAT_PORT=$3
+SOURCE_ADDRESS=$4
+SOURCE_INTFC=$5
+PORT_TYPE=$6
+DESTINATION_ADDRESS=$7
+DESTINATION_PORT=$8
+
+EXPECTED_ARGS=8
+if [ $# -ne $EXPECTED_ARGS ]
+then
+
+    echo "Error: arg count is "$#
+    echo "Usage: create-flow-app-flask source_command nat_address  nat_port source_address\\
+                                       source_intfc port_type destination_address destination_port\\
+          e.g.,  create-flow-app-flask /usr/bin/nc 10.43.200.10 16010    172.17.0.45\\
+                                       ens3f1       tcp       34.121.32.104       15080"
+    exit
+fi
+
+# the nat_port port should be chosen above the 14000-14100 dnat already in place for testing
+# the destination_port should be chose in 14100-19999 where GCP firewall opn
+# the destination_address should be an active GCP note e.g., staas2 34.121.32.104
+#
+# Step a: create dnat on 6525 to map nat_port to destination_port on GCP machine
+# /home/jtb/Desktop/nat/golden/add-prerouting-dnat-rule 16010 34.121.32.104 15080
+/home/jtb/Desktop/nat/golden/add-prerouting-dnat-rule $NAT_PORT $DESTINATION_ADDRESS $DESTINATION_PORT
+#
+# Step b: create host route on source machine - gw on same network as source_address (data plane 10.43.200.x)
+# /home/jtb/Desktop/nat/golden/add-host-route-remote 172.17.0.45 10.43.200.10 ens3f1 34.121.32.104
+/home/jtb/Desktop/nat/golden/add-host-route-remote $SOURCE_ADDRESS $NAT_ADDRESS $SOURCE_INTFC $DESTINATION_ADDRESS
+#
+# Step c: start application on source machine
+# ssh jtb@jtb-dell-6515-1 /usr/bin/nc 34.121.32.104 16010 < /var/log/syslog
+# use app destination_address and destination_port to create unique log file
+#ssh jtb@$SOURCE_ADDRESS $SOURCE_COMMAND $DESTINATION_ADDRESS $DESTINATION_PORT > /tmp/staas-app-log-$DESTINATION_ADDRESS-$DESTINATION_PORT.out 2> /tmp/staas/app-log-$DESTINATION_ADDRESS-$DESTINATION_PORT.err < /var/log/syslog
+ssh jtb@$SOURCE_ADDRESS $SOURCE_COMMAND -c $DESTINATION_ADDRESS -p $DESTINATION_PORT -t 60 &

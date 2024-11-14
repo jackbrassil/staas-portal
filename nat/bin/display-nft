@@ -1,0 +1,5 @@
+# show NAT table listing
+#
+#!/bin/bash
+sudo nft -a list table nat
+sudo nft -a list table raw

@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Traffic from LAN source IP address (or net) forwarded vi routing table
+# on output interface eno2 will have source IP addressed changed to $1
+#
+# Usage: bash add-postrouting-snat-rule 172.17.0.106
+# 
+# ifconfig -a | sed 's/[ \t].*//;/^$/d' lists all networi interfaces followed by colon
+echo $1
+#var = $1
+#echo ${var}
+if [ -z "$1" ]	# if $1 is unset
+then
+    echo "Invalid NAT rule addition"
+else
+    sudo nft add rule nat postrouting ip saddr 10.43.200.0/24 oif eno2 snat to $1
+fi
+nft -a list ruleset
+#nft -a list table nat   doesn't display *raw* table (stateless nat)
+
+#or to write to one file use
+#sudo nft list table nat 2>&1 | tee -a stdout-err.log
+if test -f stderr.log; then
+	logger -f stderr.log
+	rm stderr.log
+fi
+
+if test -f stdout.log; then
+	rm stdout.log
+fi

@@ -1,0 +1,7 @@
+sudo nft delete rule nat prerouting handle $1
+##### where $1 is handle number for experimenter remote destination command such as
+##### sudo nft add rule nat prerouting iif enp129s0f1 ip daddr 172.17.0.104 ip saddr 10.43.200.10 dnat to 172.17.0.90
+##### find handle with
+sudo nft -a list table nat
+##### get handle with grep and awk - match on flow 2-tuple "ip daddr 172.17.0.104 ip saddr 10.43.200.10"
+##### sudo nft -n -a list table nat | grep -e 'ip daddr 172.17.0.104 ip saddr 10.43.200.10' | awk '{print $NF}'

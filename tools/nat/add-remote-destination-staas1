@@ -1,0 +1,13 @@
+export STAAS1_IP=34.121.121.230
+
+if [ -z ${STAAS1_IP} ]; then echo "STAAS_IP is unset"; else echo "STAAS_IP is set to" $STAAS1_IP ; fi
+
+### where ${var+x} is a parameter expansion which evaluates to nothing if var is unset, and substitutes the string x otherwise.
+##### Example: sudo nft add rule nat prerouting iif ens2f1np1 udp dport { 14000 } dnat to $IP_REMOTE
+##### Example: sudo nft add rule nat prerouting iif ens3f0 ip daddr 10.43.233.171 dnat to $IP_REMOTE
+##### Example: sudo nft add rule nat prerouting iif enp129s0f0 ip daddr 10.43.233.158 to 104.197.7.205
+##### Example: sudo nft add rule nat prerouting iif enp129s0f1 ip daddr 172.17.0.104 dnat to $IP_REMOTE
+sudo nft add rule nat prerouting iif enp129s0f1 ip daddr 10.43.233.158 dnat to $STAAS1_IP
+sudo nft -a list ruleset
+# nft -a list table nat   doesn't display *raw* table (stateless nat)
+

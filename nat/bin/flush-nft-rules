@@ -1,0 +1,3 @@
+#!/bin/bash
+sudo nft -a flush table nat
+sudo nft -a flush table raw

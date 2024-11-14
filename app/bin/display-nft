@@ -1,0 +1,7 @@
+#!/bin/bash
+# report error messages to syslog (/var/log/syslog) with
+# sudo logger "STAAS: error text"
+# and command output with `cmd`
+# sudo logger "STAAS:" `echo "JTB"`
+sudo nft -a list table nat
+sudo nft -a list table raw

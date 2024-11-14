@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block content %}
+    <p></p>
+    <h1>Experiment Traffic Monitoring</h1>
+    <p> This page displays experimental traffic status for STaas site administrators only.</p>
+
+<h3> Active NAT connections only</h3>
+    </h3>
+    {% for line in lines %}
+        <div>{{ line | safe }}</div>
+    {% endfor %}
+<p></p>
+<h3> Packet mangler's <i>nfttables</i> (tables, chains, rules in effect)</h3>
+    {% for nftline in nftlines %}
+        <div>{{ nftline|indent}}</div>
+    {% endfor %}
+
+{% endblock content %}

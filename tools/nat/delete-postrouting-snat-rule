@@ -1,0 +1,32 @@
+#!/bin/bash
+# Traffic from LAN source IP address (or net) forwarded via routing table
+# to output interface eno2 will have its source IP address changed to $1
+#
+# Usage: bash drop-postrouting-snat-rule HANDLE
+#  
+# Notes: Must be an active HANDLE (integer > 0) as displayed by
+# sudo nft -a list table nat
+# ifconfig -a | sed 's/[ \t].*//;/^$/d' lists all networi interfaces followed by colon
+#
+
+echo  "arg is " $1
+if [[ !( $1 -gt 0 ) ]];
+then
+    echo "Invalid rule handle. Please enter a rule handle greater than zero"
+else
+    sudo nft delete rule nat postrouting handle $1
+fi
+sudo nft -a list table nat
+
+#or to write to one file use
+#sudo nft list table nat 2>&1 | tee -a stdout-err.log
+if test -f stderr.log; then
+	logger -f stderr.log
+	rm stderr.log
+fi
+
+if test -f stdout.log; then
+	rm stdout.log
+fi
+# An alternative to using logger to write to file once is
+# sudo nft list table nat 2>&1 | tee -a stdout-err.log

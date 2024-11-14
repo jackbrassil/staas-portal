@@ -1,0 +1,18 @@
+#! /bin/bash
+# add host route from host-IP through interface to specified destination IP address
+if [ -z "$1" ]  && [ -z "$2" ] && [-z "$3" ] && [-z "$4" ]	# if incomplete command line options
+then
+    echo "Error:"
+    echo "Usage: add-host-route-remote host-IP gw host-interface destination-IP"
+    echo "       e.g.   add-host-route-remote 172.17.0.45 10.43.200.10 eth1 34.5.46.122"
+    exit
+else
+    EXIST=`ssh jtb@$1 ip route show $4 | wc -l`
+    if [ $EXIST -eq 0 ]
+    then
+        echo "On host $1 adding ip route add $4/32 via $2 dev $3 ..."
+        ssh jtb@$1 sudo ip route add $4/32 via $2 dev $3
+    else
+        echo "Route already exists on host $1 for destination-IP $4"
+    fi
+fi

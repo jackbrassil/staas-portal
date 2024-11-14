@@ -1,0 +1,68 @@
+~/Desktop/nat/golden/delete-nft-all
+export IP_REMOTE="10.20.0.101"	#prin1 external IP address on FABRIC facility_port_PRIN_2local.ipynb
+export IIF="enp5s0f1np1"	# nat input interface
+export OIF="enp5s0f0np0"	# nat output interface
+# from jtb JupiterHub junpyter-examples/-rel1.6./jtb/examples
+#
+# many other magic numbers below to be changed for each STaaS site's nat including
+# nat output inferface (oif) enp5s0f0np0, also used to identify interface of IP_WAN1
+# nat input interface (iif) enp5s0f1np1
+#
+# turn on IP forwarding
+sudo sysctl net/ipv4/ip_forward=1
+echo "check ip_forwarding set to 1"
+more /proc/sys/net/ipv4/ip_forward
+#
+# get IP addresses of WAN interfaces to FABRIC (10.20.0.3 for port enp5s0f0np0 on staas-620-3
+#
+export IP_WAN1=$(/sbin/ifconfig enp5s0f0np0 | egrep -o 'inet [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'  | cut -d' ' -f2)
+echo $IP_WAN1
+#
+# add table for nat chains and rules
+sudo nft add table nat
+sudo nft 'add chain nat postrouting { type nat hook postrouting priority 100 ; }'
+#
+# set up source NAT to change source address of all packets leaving testbed to any outgoing WAN interface
+# Example: sudo nft add rule nat postrouting ip saddr 10.43.200.0/16 oif eno2 snat to 172.17.0.106
+#sudo nft add rule nat postrouting ip saddr 10.43.200.0/16 oif eno1 snat to $IP_WAN1
+sudo nft add rule nat postrouting ip saddr 10.43.214.0/24 oif enp5s0f0np0 snat to $IP_WAN1
+#
+sudo nft 'add chain nat prerouting { type nat hook prerouting priority -100; }'
+#change destination address of indicated packets arriving on specified LAN interface destined for remote experimenter IP address IP_REMOTE
+##### Example: sudo nft add rule nat prerouting iif ens2f1np1 udp dport { 14000 } dnat to $IP_REMOTE
+##### Example: sudo nft add rule nat prerouting iif ens3f0 ip daddr 10.43.233.171 dnat to $IP_REMOTE
+#dnat packets arriving on staas-620-3 port enp5s0f1np1 (10.43.214.45)
+sudo nft add rule nat prerouting iif enp5s0f1np1 udp dport { 14000-16000 } dnat to $IP_REMOTE
+sudo nft add rule nat prerouting iif enp5s0f1np1 tcp dport { 14000-16000 } dnat to $IP_REMOTE
+sudo nft -a list table nat
+#####
+##### packet mangler to change outbound header fields
+#####
+sudo nft add table raw
+sudo nft add chain raw prerouting {type filter hook prerouting priority -300\;}
+sudo nft add rule raw prerouting tcp dport 8080 tcp dport set 80
+sudo nft add rule raw prerouting tcp dport 14050 tcp dport set 9010
+# redirect to discard server port 9
+sudo nft add rule raw prerouting tcp dport 14600 tcp dport set 9
+sudo nft add rule raw prerouting udp dport 14600 udp dport set 9
+# IP address swapper below
+# these 2 commands implement 2 way IP address swapping rather than implement a NAT
+# warning: side effect -- this is not directional so all connections to staas1 would now fail unless this dummy address is used
+# this means if both rules are used then you would need to reach staas1 by ssh 'jack@DUMMY_IP' not ssh 'jack@staas1'
+#change packets destined to dummy GCP address 34.121.121.235 to staas1
+#sudo nft add rule raw prerouting ip daddr 34.121.121.235 ip daddr set $IP_REMOTE
+#change returning response from staas1 to look like sent from dummy GCP address 34.121.121.235
+#sudo nft add rule raw prerouting ip daddr $IP_REMOTE ip daddr set 34.121.121.235
+sudo nft -a list table raw
+exit
+#####
+##### Create DNAT for incoming WAN packets (testing only)
+#####
+#####
+# change destination address of all packets arriving on WAN interfaces for certain ports to jtb-dell-6515-1 interface ens3f1 (200.5)
+# this should be pulled out of script -- experiment run time insertion/deletion
+#sudo nft 'add rule nat prerouting iif eno2 udp dport { 12000, 7000 } dnat to 10.43.200.5'
+#sudo nft 'add rule nat prerouting iif eno1 udp dport { 12000, 7000 } dnat to 10.43.200.5'
+#sudo nft 'add rule nat prerouting iif eno2 tcp dport { 8666 } dnat to 10.43.200.5'
+#sudo nft 'add rule nat prerouting iif eno1 tcp dport { 8666 } dnat to 10.43.200.5'
+#sudo nft list table nat

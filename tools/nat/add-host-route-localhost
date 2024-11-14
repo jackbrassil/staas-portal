@@ -1,0 +1,19 @@
+#! /bin/bash
+# add host route to specified IP address on local machine
+if [ -z "$1" ]  && [ -z "$2" ]	# if $1 is unset
+then
+    echo "Error:"
+    echo "Usage: add-host-route-if-missing host interface"
+    echo "       e.g.   add-host-route-if-missing 34.5.46.122 eth1"
+    exit
+else
+    EXIST=`ip route show $1 | wc -l`
+    if [ $EXIST -eq 0 ]
+    then
+        sudo ip route add $1/32 dev $2
+    fi
+    if [ $EXIST -eq 1 ]
+    then
+        sudo ip route chg $1/32 dev $2
+    fi
+fi

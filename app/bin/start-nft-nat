@@ -1,0 +1,42 @@
+# Admin to set these networking variables based on local configuration
+export IP_REMOTE="10.20.0.101"	# IPADDR of test destination machine prin1 on FABRIC; facility_port_PRIN_2local.ipynb
+export IIF="enp5s0f1np1"	# nat input interface
+export OIF="enp5s0f0np0"	# nat output interface
+export SRC_NET="10.43.214.0/24" 
+#
+# flush any existing NAT
+~/Desktop/nat/golden/delete-nft-all
+# turn on IP forwarding
+sudo sysctl net/ipv4/ip_forward=1
+echo "check ip_forwarding set to 1"
+more /proc/sys/net/ipv4/ip_forward
+#
+# get IP addresses of NAT's WAN interfaces to FABRIC
+#
+export IP_WAN1=$(/sbin/ifconfig $OIT | egrep -o 'inet [0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'  | cut -d' ' -f2)
+echo $IP_WAN1
+#
+# add table for nat chains and rules
+sudo nft add table nat
+sudo nft 'add chain nat postrouting { type nat hook postrouting priority 100 ; }'
+#
+# set up source NAT to change source address of all packets from $SRC_NET leaving testbed to any outgoing WAN interface
+sudo nft add rule nat postrouting ip saddr $SRC_NET oif $OIF snat to $IP_WAN1
+sudo nft 'add chain nat prerouting { type nat hook prerouting priority -100; }'
+#change destination address t0 $IP_REMOTE of packets arriving input NAT interface within specified port rante
+sudo nft add rule nat prerouting iif $IIF udp dport { 14000-16000 } dnat to $IP_REMOTE
+sudo nft add rule nat prerouting iif $IIF tcp dport { 14000-16000 } dnat to $IP_REMOTE
+sudo nft -a list table nat
+#####
+##### packet mangler to change outbound header fields
+#####
+sudo nft add table raw
+sudo nft add chain raw prerouting {type filter hook prerouting priority -300\;}
+# Examples: port mapping
+# sudo nft add rule raw prerouting tcp dport 8080 tcp dport set 80
+sudo nft add rule raw prerouting tcp dport 14050 tcp dport set 9010
+# Examples: redirect to discard server port 9
+sudo nft add rule raw prerouting tcp dport 14600 tcp dport set 9
+sudo nft add rule raw prerouting udp dport 14600 udp dport set 9
+sudo nft -a list table raw
+exit

@@ -1,0 +1,14 @@
+# To add a stateless nat for untracked connection packet mangling we 
+# must create a nft table called "raw" (distinct from the snat and dnat "ip" table)
+# and add it to the prerouting chain at lower priority
+#    Example:
+#    $nft add table raw
+#    $nft add chain raw prerouting {type filter hook prerouting priority -300\;}
+#    $nft add rule raw prerouting tcp dport 8080 tcp dport set 80
+#    Description: The commands above create a table named raw, a chain named prerouting
+#                 (see Netfilter hooks) and a rule to mangle the destination port of arriving
+#                 packets over TCP from 8080 to 80. 
+sudo nft add table raw
+sudo nft add chain raw prerouting {type filter hook prerouting priority -300\;}
+sudo nft add rule raw prerouting tcp dport 8080 tcp dport set 80
+sudo nft -a list table raw

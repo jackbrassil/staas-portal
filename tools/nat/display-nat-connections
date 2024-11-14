@@ -1,0 +1,10 @@
+#!/bin/bash
+# Display NAT tracked connections
+# Note 1: Some timed-out connections show nothing
+# Note 2: Doesn't display RAW table connections without associated NAT activity
+# Note 3: Lists only connections from offered flow networks 10.43.x.x
+# Note 4: Enumerated entries not listed are sources outside of 10.43 network
+SRC=10.43.x.x		# see only NAT active connections from source switches
+echo "Listing only tracked connections from "$SRC" networks"
+echo "Other enumerated connections not shown"
+sudo /usr/sbin/conntrack -L  | grep "10.43."

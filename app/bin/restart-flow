@@ -1,0 +1,44 @@
+#!/bin/bash
+# This app and maps a flask experimenter request to restart flow
+# form entry data from RestartFlowForm into a requested flow restart
+#
+#          Usage: restart-flow /usr/bin/nc             #source_command
+#                              10.43.200.10            #nat_address
+#                              16010                   #nat_port (inbound)
+#                              172.17.0.45             #source_address
+#                              ens3f1                  #source intfc
+#                              tcp                     #port_type
+#                              34.121.32.104           #destination_address
+#                              15080                   #destination_port
+SOURCE_COMMAND=$1
+NAT_ADDRESS=$2
+NAT_PORT=$3
+SOURCE_ADDRESS=$4
+SOURCE_INTFC=$5
+PORT_TYPE=$6
+DESTINATION_ADDRESS=$7
+DESTINATION_PORT=$8
+
+EXPECTED_ARGS=8
+if [ $# -ne $EXPECTED_ARGS ]
+then
+
+    echo "Error: arg count is "$#
+    echo "Usage: restart-flow source_command nat_address  nat_port source_address\\
+                                       source_intfc port_type destination_address destination_port\\
+          e.g.,  restart-flow /usr/bin/nc 10.43.200.10 16010    172.17.0.45\\
+                                       ens3f1       tcp       34.121.32.104       15080"
+    exit
+fi
+
+# 
+echo "This is the " $SOURCE_COMMAND
+CMD=$(echo $SOURCE_COMMAND | head -n1 | awk '{print $1;}')
+echo "This is the trunctated version" $CMD
+if [ $CMD == "/usr/bin/nc" ] || [ $CMD == "nc" ]; then
+    ssh jtb@$SOURCE_ADDRESS $SOURCE_COMMAND $DESTINATION_ADDRESS $DESTINATION_PORT < /var/log/syslog &
+elif [ $CMD == "/usr/bin/iperf" ] || [ $CMD == "iperf" ]; then
+    ssh jtb@$SOURCE_ADDRESS $SOURCE_COMMAND -c $DESTINATION_ADDRESS -p $DESTINATION_PORT & 
+else
+    echo "Command $SOURCE_COMMAND truncated to $CMD is unexpected."
+fi

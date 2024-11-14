@@ -1,0 +1,7 @@
+# flush then remove NAT tables
+#
+#!/bin/bash
+sudo nft -a flush table nat
+sudo nft -a flush table raw
+sudo nft delete table nat
+sudo nft delete table raw

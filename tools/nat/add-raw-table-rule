@@ -1,0 +1,4 @@
+# Add a stateless nat rule to alread existing nft table "raw"
+#
+sudo nft add rule raw prerouting tcp dport 8088 tcp dport set 80
+sudo nft -a list table raw

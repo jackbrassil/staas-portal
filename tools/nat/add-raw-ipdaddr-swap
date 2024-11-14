@@ -1,0 +1,6 @@
+# ipdaddr swapper
+# using this raw rule only works for outbound traffic (UDP on ports mapped 14000-14100)
+sudo nft add rule raw prerouting ip daddr 34.121.121.235 ip daddr set 34.121.121.230
+# using this raw rule in addition works on inbound traffic too (TCP on ports mapped 14000-14100)
+# but this is dangerous for other clients that do not know this ipdaddr swap is in place
+#sudo nft add rule raw prerouting ip daddr 34.121.121.230 ip daddr set 34.121.121.235

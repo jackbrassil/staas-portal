@@ -1,0 +1,16 @@
+# Usage: delete-raw-table-rule-by-handle handle
+# handle is a non-negative integer
+
+echo  "arg is " $1
+if [[ -z $1 ]];
+then
+    #no string
+    echo "Usage: delete-raw-table-rule-by-handle handle-number"
+    echo "Invalid RAW table rule delete - handle must be a non-negative integer"
+    exit 0
+elif [[ $1 -gt 0 ]];
+then
+    sudo nft delete rule raw prerouting handle $1
+    #handle is greater than 0
+fi
+sudo nft -a list table raw

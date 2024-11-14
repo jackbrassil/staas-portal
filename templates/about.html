@@ -1,0 +1,52 @@
+{% extends "layout.html" %}
+{% block content %}
+    <p></p>
+    <h1>About the STaaS system <img src="/static/images/fabric.png" width="120" height="80"> </h1>
+    <p> The Science Traffic as a Service (STaaS) project develops new
+    tools to help computer and network systems scientists run experiments
+    on testbeds, including the
+        <a href="http://whatisfabric.net">FABRIC</a> mid-scale networking research
+    infrastructure.
+    <p>
+    Many FABRIC experimenters seek to test their advances
+    in the presence of realistic, representative background traffic.
+    Some networking research such as the identification
+    and investigation of heavy hitter flows relies on the presence
+    of external background traffic to study adequately. But as
+    the bandwidth of network links grows into terabits, generating
+    material background traffic becomes more difficult for
+    individual experimenters, and in some cases becomes infeasible. For example,
+    an experimenter injecting traffic to a FABRIC experiment via a 10 Gbps campus connection
+    might be seeking to congest a 400 Gbps core FABRIC link.
+    <p>
+    To address this challenge we have developed STaaS, a
+    prototype of a cooperative traffic generation system
+    that raises experimental data traffic distribution
+    to a first-class testbed-wide service – one that will reduce
+    the experimenter’s workload, improve the experimenter’s User
+    eXperience (UX), and facilitate experiment reproducibility.
+    Our key insight is that plenty of data flows – often ”science”
+    flows – are already in transit at any moment, either on
+    campus or inbound/outbound at the campus border. Rather
+    than synthesize all new traffic, we tap available
+    active flows, say inbound traffic to a campus Science DMZ
+    (SDMZ) carrying a public science data set, and mirror it onto
+    the experimental testbed. Scale is achieved by enlisting
+    participation of many cooperating edge sites in the traffic
+    generation system. To redistribute traffic safely, our system will permit
+    traffic redistribution only when 1) offered for redistribution
+    by an originating hosting site  (e.g., campus or testbed), and 2)
+    specifically requested by an authorized experimenter.
+    <p>
+    Authorized experimenters are those who
+    <ol>
+    <li>
+    are owners or members of existing FABRIC projects; and
+    <li>
+    have established a STAAS login on a FABRIC site that is hosting the
+    STaaS service. A <a href="http://whatisfabric.net">CIlogon</a> may be required by the hosting site.
+    </ol>
+    <p>
+    This project is supported in part by the National Science Foundation under grant <i>OAC-2018308</i>.
+    </p>
+{% endblock content %}

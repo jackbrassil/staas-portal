@@ -1,0 +1,17 @@
+#!/bin/bash
+# Remove dnat rule (by handle) to end IP destination address change before forwarding
+#
+# Usage: bash delete-prerouting-dnat-rule HANDLE
+#  
+# Notes: Must be an active HANDLE (integer > 0) as displayed by
+# ifconfig -a | sed 's/[ \t].*//;/^$/d' lists all network interfaces followed by colon
+HANDLE=$1
+if [[ $HANDLE -lt 1 ]];
+then
+    echo $1 $HANDLE
+    echo "Invalid rule handle. Please enter a rule handle greater than zero"
+    logger "STAAS: delete invalid rule handle"
+else
+    sudo nft delete rule nat prerouting handle $HANDLE
+fi
+#sudo nft -a list table nat

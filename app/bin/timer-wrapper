@@ -1,0 +1,21 @@
+#!/bin/bash
+# 
+# apps in this directory can run indefinitely
+# consider wrapping each app as illustrated in dummy app below to limit its duration to TIMEOUT minutes
+# run remotely on SOURCE node: ssh USER@SOURCE /home/jtb/Desktop/staas/timer/timer-wrapper  > pidkills.out & 
+TIMEOUT=1
+
+#dummy app to run 3 tasks
+nc -l -u 24000 & JOB1_PID=$!
+nc -l 26000 & JOB2_PID=$!
+nc -l -u 24010 & JOB3_PID=$!
+sleep 200 & JOB4_PID=$!
+# echo "list task PIDs of this script's jobs"
+SCRIPT_PID=`ps -o ppid= $JOB1_PID`
+echo $JOB1_PID $JOB2_PID $JOB3_PID $JOB4_PID $SCRIPT_PID
+logger "STAAS: starting traffic sources with" $JOB1_PID $JOB2_PID $JOB3_PID $JOB4_PID $SCRIPT_PID
+
+# kill any jobs still running after TIMEOUT
+echo "echo '$JOB1_PID' '$JOB2_PID' '$JOB3_PID' '$JOB4_PID' '$SCRIPT_PID' >> /home/jtb/Desktop/staas/timer/pidkills.output" | at now + $TIMEOUT minutes
+echo "kill -9 '$JOB1_PID' '$JOB2_PID' '$JOB3_PID' '$JOB4_PID' '$SCRIPT_PID'" | at now + $TIMEOUT minutes
+logger "STAAS: stopping traffic sources with" $JOB1_PID $JOB2_PID $JOB3_PID $JOB4_PID $SCRIPT_PID

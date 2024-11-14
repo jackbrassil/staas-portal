@@ -1,0 +1,57 @@
+#!/bin/bash
+# This app maps a flask experimenter request from CreateFlowForm to start a new flow
+#
+# Usage: create-flow-app-flask /usr/bin/nc             #source_command
+#                              10.43.200.10            #nat_address
+#                              16010                   #nat_port (inbound)
+#                              172.17.0.45             #source_address
+#                              ens3f1                  #source intfc
+#                              tcp                     #port_type
+#                              34.121.32.104           #destination_address
+#                              15080                   #destination_port
+#
+# exectute apps in their directory; set path of any bash scripts called
+parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+cd "$parent_path"	# move to current directory
+APP_BIN=../../nat/bin
+#
+SOURCE_COMMAND=$1
+NAT_ADDRESS=$2
+NAT_PORT=$3
+SOURCE_ADDRESS=$4
+SOURCE_INTFC=$5
+PORT_TYPE=$6
+DESTINATION_ADDRESS=$7
+DESTINATION_PORT=$8
+
+EXPECTED_ARGS=8
+if [ $# -ne $EXPECTED_ARGS ]
+then
+
+    echo "Error: arg count is "$#
+    echo "Usage: create-flow source_command nat_address  nat_port source_address\\
+                                       source_intfc port_type destination_address destination_port\\
+          e.g.,  create-flow /usr/bin/nc 10.43.200.10 16010    172.17.0.45\\
+                                       ens3f1       tcp       34.121.32.104       15080"
+    exit
+fi
+
+# Step a: create dnat on NAT to map $NAT_PORT to $DESTINATION_PORT on target machine
+$APP_BIN/add-prerouting-dnat-rule $NAT_PORT $DESTINATION_ADDRESS $DESTINATION_PORT $PORT_TYPE
+#
+# Step b: create host route on source machine
+APP_BIN/add-host-route-remote $SOURCE_ADDRESS $NAT_ADDRESS $SOURCE_INTFC $DESTINATION_ADDRESS
+#
+# Step c: start application on source machine
+echo "This is the " $SOURCE_COMMAND
+CMD=$(echo $SOURCE_COMMAND | head -n1 | awk '{print $1;}')
+echo "This is the trunctated version" $CMD
+if [ $CMD == "/usr/bin/nc" ] || [ $CMD == "nc" ]; then
+    ssh jtb@$SOURCE_ADDRESS $SOURCE_COMMAND $DESTINATION_ADDRESS $DESTINATION_PORT < /var/log/syslog &
+fi
+if [ $SOURCE_CMD == "/usr/bin/iperf" ] || [ $SOURCE_CMD == "iperf" ]; then
+    ssh jtb@$SOURCE_ADDRESS $SOURCE_COMMAND -c $DESTINATION_ADDRESS -p $DESTINATION_PORT & 
+elif
+   [ $SOURCE_CMD == "/usr/bin/iperf -u" ] || [ $SOURCE_CMD == "/usr/bin/iperf -u" -c" ]; then
+    ssh jtb@$SOURCE_ADDRESS $SOURCE_COMMAND -u -c $DESTINATION_ADDRESS -p $DESTINATION_PORT & 
+fi

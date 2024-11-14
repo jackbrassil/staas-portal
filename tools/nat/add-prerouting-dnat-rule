@@ -1,0 +1,82 @@
+#!/bin/bash
+
+# Traffic from LAN source IP address (or net) arriving on interface enp129s0f1
+# with udp destination port 15000 will be forwarded to destination IP address
+# set in command line argument, or 104.197.7.205 (staas1 on GCP) by default.
+# Note that after the dest IP address change the
+# packet will be forwarded by routing table, and perhaps have its source IP
+# address changed to the egress IP address of this node before exiting.
+#
+# Usage:  bash add-prerouting-dnat-rule $1 $2 $3
+# 
+# ifconfig -a | sed 's/[ \t].*//;/^$/d'			-- lists all network interfaces followed by colon
+# ifconfig | sed -e 's/[ \t].*//;/^$/d' -e 's/:$//'	-- lists all active interfaced without colon
+#############
+NAT_IIF='enp5s0f1np1'	# STAAS Administrator: specify NAT's input interface (campus side
+#############
+INGRESS_PORT_RANGE=$1
+REMOTE_IP=$2
+REMOTE_PORT=$3
+PORT_TYPE=$4
+#DEFAULT_INGRESS_PORT_RANGE='1480-1490'
+DEFAULT_REMOTE_IP='34.122.121.230'
+DEFAULT_REMOTE_PORT='19998'
+DEFAULT_PORT_TYPE='tcp'
+DEFAULT_NAT_IIF='enp5s0f1np1' 
+if [ -z "$1" ]	# if $1 is unset
+then
+    echo "Error:"
+    echo "Usage: add-prerouting-dnat-rule ingress_port_range remote_ip remote_port"
+    echo "       e.g.   add-prerouting-dnat-rule [16010, 16010-16040] 34.5.46.122 15050"
+    exit
+fi
+
+if [ -z "$2" ]	# if $2 is unset
+then
+    REMOTE_IP=$DEFAULT_REMOTE_IP
+    echo "Incomplete NAT rule specified: no destination IP address, substituting "$DEFAULT_REMOTE_IP
+    logger "STAAS: Incomplete NAT rule specified: no destination IP address"
+fi
+
+if [ -z "$3" ]	# if $3 is unset
+then
+    REMOTE_PORT=$DEFAULT_REMOTE_PORT
+    echo "Incomplete NAT rule specified: no destination IP port, substituting "$DEFAULT_REMOTE_PORT
+    logger "STAAS: Incomplete NAT rule specified: no destination PORT address"
+fi
+
+if [ -z "$4" ]	# if $4 is unset
+then
+    PORT_TYPE=$DEFAULT_PORT_TYPE
+    echo "Incomplete NAT rule specified: no destination IP port, substituting "$DEFAULT_PORT_TYPE
+    logger "STAAS: Incomplete NAT rule specified: no PORT type"
+fi
+if [ -z "$5" ]	# if $5 is unset
+then
+    NAT_IIF=$DEFAULT_NAT_IIF
+    echo "Incomplete NAT rule specified: no destination NAT interface, substituting "$DEFAULT_NAT_IIF
+    logger "STAAS: Incomplete NAT rule specified: no NAT interface"
+fi
+
+### add only the specified port type tcp or udp but not both
+sudo nft add rule nat prerouting iif $NAT_IIF $PORT_TYPE dport $INGRESS_PORT_RANGE dnat to $REMOTE_IP:$REMOTE_PORT
+#sudo nft add rule nat prerouting iif "enp129s0f1" tcp dport $INGRESS_PORT_RANGE dnat to $REMOTE_IP:$REMOTE_PORT
+sudo nft -a list ruleset
+
+
+#return handles of inserted rules
+#1. run sudo nft -a list table nat
+#   rule looks like iif "enp129s0f1" tcp dport 16010-16020 dnat to 4.4.4.4:16090 # handle 32
+#2 get handle with grep and awk - match on flow 2-tuple "ip daddr 172.17.0.104 ip saddr 10.43.200.10"
+
+string1="iif $NAT_IIF $PORT_TYPE dport $INGRESS_PORT_RANGE dnat to $REMOTE_IP:$REMOTE_PORT"
+# string2="iif \"enp129s0f1\" udp dport $INGRESS_PORT_RANGE dnat to $REMOTE_IP:$REMOTE_PORT"
+echo "start"
+echo $string1
+#echo $string2
+echo "finish"
+sudo nft -n -a list table nat | grep -e "$string1" | awk '{print $NF}'
+#sudo nft -n -a list table nat | grep -e "$string2" | awk '{print $NF}'
+#sudo nft -n -a list table nat | grep -e 'nat prerouting iif "enp129s0f1" udp dport $INGRESS_PORT_RANGE dnat to $REMOTE_IP:$REMOTE_PORT' | awk '{print $NF}'
+#sudo nft -n -a list table nat | grep -e 'nat prerouting iif "enp129s0f1" tcp dport $INGRESS_PORT_RANGE dnat to $REMOTE_IP:$REMOTE_PORT' | awk '{print $NF}'
+sudo nft -a list ruleset

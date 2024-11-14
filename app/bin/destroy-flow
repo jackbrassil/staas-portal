@@ -1,0 +1,57 @@
+#! /bin/bash
+# This app maps a flask experimenter request to delete flow
+# form entry data from DeleteFlowForm into a requested flow termination
+#
+# Usage: destroy-flow-app-flask /usr/bin/nc            #source_command
+#                              10.43.200.10            #nat_address
+#                              16010                   #nat_port (inbound)
+#                              172.17.0.45             #source_address
+#                              ens3f1                  #source_intfc
+#                              tcp                     #port_type
+#                              34.121.32.104           #destination_address
+#                              15080                   #destination_port
+#
+# find path of bash scripts called by these files
+#!/bin/bash
+parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
+cd "$parent_path"	# move to current directory
+APP_BIN=../../nat/bin
+#
+SOURCE_COMMAND=$1
+NAT_ADDRESS=$2
+NAT_PORT=$3
+SOURCE_ADDRESS=$4
+SOURCE_INTFC=$5
+PORT_TYPE=$6
+DESTINATION_ADDRESS=$7
+DESTINATION_PORT=$8
+
+EXPECTED_ARGS=8
+if [ $# -ne $EXPECTED_ARGS ]
+then
+
+    echo "Error:"
+    echo "Usage: destroy-flow source_command nat_address  nat_port source_address\\
+                                       source_intfc port_type destination_address destination_port\\
+          e.g.,  destroy-flow /usr/bin/nc 10.43.200.10 16010    172.17.0.45\\
+                                       ens3f1       tcp       34.121.32.104       15080"
+    exit
+fi
+
+# Step a: delete local NAT prerouting rule
+#
+# HANDLE=$(sudo nft -n -a list table nat | grep -e '34.121.32.104:15080' | grep "tcp" | rev | cut -d' ' -f1 | rev )
+HANDLE=$(sudo nft -n -a list table nat | grep -e "$DESTINATION_ADDRESS:$DESTINATION_PORT" | grep "$PORT_TYPE" | rev | cut -d' ' -f1 | rev )
+echo "Deleting found NAT rule handle=$HANDLE"
+$APP_BIN/delete-prerouting-dnat-rule $HANDLE
+#
+# Step b: delete host route on source machine
+#
+# /home/jtb/Desktop/nat/golden/delete-host-route-remote 172.17.0.45 10.43.200.10 ens3f1 34.121.32.104
+$APP_BIN/delete-host-route-remote $SOURCE_ADDRESS $NAT_ADDRESS $SOURCE_INTFC $DESTINATION_ADDRESS
+echo "Deleting route to destination host"
+#
+# Step c: Kill application on source machine
+#
+ssh jtb@$SOURCE_ADDRESS "kill -9 \$(ps -aux | grep $DESTINATION_PORT | awk '{print \$2}')"
+echo "Stopping traffic generation application"
