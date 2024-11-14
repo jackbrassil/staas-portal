@@ -3,7 +3,7 @@ Other systems supporting nfttables shold work as well.
 
 A minimal hardware configuration is discussed in README-deployment.txt
 
-a. Clone the staas-portal github project
+a. Clone the jackbrassil/staas-portal github project
 
 b. Install:
     sudo apt install -y python3-pip
